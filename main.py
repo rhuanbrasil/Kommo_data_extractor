@@ -42,36 +42,18 @@ headers_leads_list = {
 
 url_leads = f"https://{subdomain}.kommo.com/api/v4/leads"
 
-leads = requests.get(url=url_leads, headers=headers_leads_list)
+response = requests.get(url=url_leads, headers=headers_leads_list)
 
-if requests.status_codes == 401:
+if response.status_code == 401:
     print("token expirou, gerando outro...")
     payload_renew = {
-  "client_id": client_id,
-  "client_secret": client_secret,
-  "grant_type": "refresh_token",
-  "refresh_code": refresh_token,
-  "redirect_uri": "http://localhost:8080"
-  }
+        "client_id": client_id,
+        "client_secret": client_secret,
+        "grant_type": "refresh_token",
+        "refresh_token": refresh_token,
+        "redirect_uri": "http://localhost:8080"
+        }
+    Generator.generate_first_token(payload_renew, url, headers)
     leads = requests.get(url=url_leads, headers=headers_leads_list)
     
-print(leads.json())
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-print(leads.text)
+print(response.json())
