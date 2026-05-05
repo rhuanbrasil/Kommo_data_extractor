@@ -1,19 +1,15 @@
 import requests
 import os
 from dotenv import load_dotenv
-
+import json
+from Utils import Generator
 load_dotenv()
 
-#TODO tentar fazer refresh token
 client_id = os.environ.get('client_id')
 client_secret = os.environ.get('client_secret')
 code = os.environ.get('code')
 subdomain = os.environ.get('subdomain')
 url = f"https://{subdomain}.kommo.com/oauth2/access_token"
-
-
-print(f"Tentando com ID: {client_id} e Code: {code[:10]}...") 
-# code[:10] apenas para ver o início e não expor o código todo no log
 
 payload = {
   "client_id": client_id,
@@ -28,16 +24,15 @@ headers = {
     "content-type": "application/json"
 }
 
+if os.path.exists("tokens.json") == False:
+    Generator.generate_first_token(payload, url, headers)
 
-response = requests.post(url, json=payload, headers=headers)
-token_data = response.json()
+with open('tokens.json', 'r', encoding='utf-8') as f:
+    tokens_read = json.load(f)
 
-if "access_token" not in token_data:
-    print("Erro ao obter token")
-    exit()
+token_limpo = tokens_read["access_token"]    
+refresh_token = tokens_read["refresh_token"]    
 
-token_limpo = token_data['access_token']
-refresh_token = token_data['refresh_token']
 
 headers_leads_list = {
     "accept": "application/json",
@@ -48,5 +43,35 @@ headers_leads_list = {
 url_leads = f"https://{subdomain}.kommo.com/api/v4/leads"
 
 leads = requests.get(url=url_leads, headers=headers_leads_list)
+
+if requests.status_codes == 401:
+    print("token expirou, gerando outro...")
+    payload_renew = {
+  "client_id": client_id,
+  "client_secret": client_secret,
+  "grant_type": "refresh_token",
+  "refresh_code": refresh_token,
+  "redirect_uri": "http://localhost:8080"
+  }
+    leads = requests.get(url=url_leads, headers=headers_leads_list)
+    
+print(leads.json())
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 print(leads.text)
