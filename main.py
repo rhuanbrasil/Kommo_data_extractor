@@ -1,8 +1,7 @@
 import requests
 import os
 from dotenv import load_dotenv
-import json
-from Utils import Generator
+from Utils import Util
 load_dotenv()
 
 client_id = os.environ.get('client_id')
@@ -11,49 +10,15 @@ code = os.environ.get('code')
 subdomain = os.environ.get('subdomain')
 url = f"https://{subdomain}.kommo.com/oauth2/access_token"
 
-payload = {
-  "client_id": client_id,
-  "client_secret": client_secret,
-  "grant_type": "authorization_code",
-  "code": code,
-  "redirect_uri": "http://localhost:8080"
-}
-
-headers = {
-    "accept": "application/json",
-    "content-type": "application/json"
-}
-
 if os.path.exists("tokens.json") == False:
-    Generator.generate_first_token(payload, url, headers)
+    Util.write_tokens_from_code(client_id, client_secret, code, url)
 
-with open('tokens.json', 'r', encoding='utf-8') as f:
-    tokens_read = json.load(f)
+tokens_dict = Util.get_tokens()   
 
-token_limpo = tokens_read["access_token"]    
-refresh_token = tokens_read["refresh_token"]    
+leads = Util.get_leads(tokens_dict['access_token'], subdomain)
 
+if leads.status_code == 401:
+    print("Token expirou, gerando outro...")
+    Util.write_tokens_from_refresh(client_id, client_secret, tokens_dict["refresh_token"], url)  
 
-headers_leads_list = {
-    "accept": "application/json",
-    "authorization": f"Bearer {token_limpo}",
-    "Content-Type": "application/json"
-}
-
-url_leads = f"https://{subdomain}.kommo.com/api/v4/leads"
-
-response = requests.get(url=url_leads, headers=headers_leads_list)
-
-if response.status_code == 401:
-    print("token expirou, gerando outro...")
-    payload_renew = {
-        "client_id": client_id,
-        "client_secret": client_secret,
-        "grant_type": "refresh_token",
-        "refresh_token": refresh_token,
-        "redirect_uri": "http://localhost:8080"
-        }
-    Generator.generate_first_token(payload_renew, url, headers)
-    leads = requests.get(url=url_leads, headers=headers_leads_list)
-    
-print(response.json())
+print(leads.json())
