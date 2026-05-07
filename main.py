@@ -15,15 +15,8 @@ if os.path.exists("tokens.json") == False:
 
 tokens_dict = Util.get_tokens()   
 
-response = Util.get_leads(tokens_dict['access_token'], subdomain)
-leads = response.json()
+leads = Util.get_leads(tokens_dict, subdomain, client_id, client_secret)
 
-if response.status_code == 401:
-    print("Token expirou, gerando outro...")
-    Util.write_tokens_from_refresh(client_id, client_secret, tokens_dict["refresh_token"], url)
-    response = Util.get_leads(tokens_dict['access_token'], subdomain)
-    leads = response.json()
- 
 df = pd.DataFrame(leads["_embedded"]["leads"])
 
 df['tags'] = ([", ".join([tag.get("name") for tag in lead.get("_embedded", {}).get("tags", [])])
