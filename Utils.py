@@ -51,14 +51,23 @@ class Util:
         dict['refresh_token'] = tokens_read["refresh_token"]
         return dict
     @staticmethod
-    def get_leads(token, subdomain):
+    def get_leads(tokens_dict, subdomain, client_id, client_secret):
         headers_leads_list = {
             "accept": "application/json",
-            "authorization": f"Bearer {token}",
+            "authorization": f"Bearer {tokens_dict["access_token"]}",
             "Content-Type": "application/json"
         }
         url_leads = f"https://{subdomain}.kommo.com/api/v4/leads"
-        return requests.get(url=url_leads, headers=headers_leads_list)
+        url = f"https://{subdomain}.kommo.com/oauth2/access_token"
+        response = requests.get(url=url_leads, headers=headers_leads_list)
+        if response.status_code == 401:
+            print("Token expirou, gerando outro...")
+            Util.write_tokens_from_refresh(client_id, client_secret, tokens_dict["refresh_token"], url)
+            response = Util.get_leads(tokens_dict['access_token'], subdomain)
+            return response.json()
+        else:
+            return response.json()
+        
     
     
 
